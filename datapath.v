@@ -1,7 +1,7 @@
 
 module datapath (
-    input IM_out [31:0],
-    input DM_out [63:0],
+    input [31:0] IM_out ,
+    input [63:0] DM_out ,
     input clk, we_RF, load_IR, load_PC, //loads e enables
     input sel_ALU_A, sel_ALU_B, sel_PC_A, sel_PC_B, sel_PC_RF//selecionadores (MUX) 
     input [2:0] sel_imme,
