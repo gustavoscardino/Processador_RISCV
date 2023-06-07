@@ -1,16 +1,29 @@
+module datapath 
+    #(  // Tamanho em bits dos barramentos
+        parameter i_addr_bits = 6,
+        parameter d_addr_bits = 6
+    )(
+        input  clk, rst_n,                   // clock borda subida, reset assíncrono ativo baixo
+        output [6:0] opcode,                    
+        input  d_mem_we, rf_we,              // Habilita escrita na memória de dados e no banco de registradores
+        input  [3:0] alu_cmd,                // ver abaixo
+        output [3:0] alu_flags,
+        input  alu_src,                      // 0: rf, 1: imm
+               pc_src,                       // 0: +4, 1: +imm
+               rf_src,                       // 0: alu, 1:d_mem
+        output [i_addr_bits-1:0] i_mem_addr,
+        input  [31:0]            i_mem_data,
+        output [d_addr_bits-1:0] d_mem_addr,
+        inout  [63:0]            d_mem_data
 
-module datapath (
-    input [31:0] IM_out ,
-    input [63:0] DM_out ,
-    input clk, we_RF, load_IR, load_PC, //loads e enables
-    input sel_ALU_A, sel_ALU_B, sel_PC_A, sel_PC_B, sel_PC_RF//selecionadores (MUX) 
-    input [2:0] sel_imme,
-    input [1:0] sel_RF_in,
-    output [63:0] ALU_out, //vai pra RAM
-    output [19:0] PC_out, //vai pra ROM
-    output [6:0] opcode //vai pra UC
-    //faltam flags de saída
-);
+    );
+    // AluCmd     AluFlags
+    // 0000: R    0: zero
+    // 0001: I    1: MSB 
+    // 0010: S    2: overflow
+    // 0011: SB
+    // 0100: U
+    // 0101: UJ             
     
 //Instanciação das entradas RF
 wire [4:0] Ra;
@@ -41,17 +54,16 @@ wire [63:0] imme_m;
 
 //Instanciação dos fios do circuito ALU
 wire [63:0] ALU_out_int;
-wire [63:0] ALU_A;
 wire [63:0] ALU_B;
 wire [1:0] sel_ALU;
 
 //Instanciação dos fios do circuito PC
-wire [19:0] PC_A;
+//wire [19:0] PC_A;
 wire [19:0] PC_B;
 wire [19:0] PC_sum;
 wire [19:0] PC_out_int; 
-wire [63:0] PC_RF;
-wire [63:0] PC_RF_sum;
+//wire [63:0] PC_RF;
+//wire [63:0] PC_RF_sum;
 
 
 //Instanciação da saída do IR
@@ -83,23 +95,32 @@ assign imme_U_64 = {32'b0, imme_J};
 
 //Multiplexadores do imediato
 
-assign imme_m = (sel_imme == 3'b000) ? imme_I_64 :
-               (sel_imme == 3'b001) ? imme_S_64 :
-               (sel_imme == 3'b010) ? imme_B_64 :
-               (sel_imme == 3'b011) ? imme_J_64 :
-               (sel_imme == 3'b100) ? imme_U_64 :
+assign imme_m = (AluCmd == 3'b0001) ? imme_I_64 :
+               (AluCmd == 3'b0010) ? imme_S_64 :
+               (AluCmd == 3'b0011) ? imme_B_64 :
+               (AluCmd == 3'b0100) ? imme_U_64 :
+               (AluCmd == 3'b0101) ? imme_J_64 :
                64'b0;
+
+//Instanciacao do RF
+RF RF_dp #(64) (
+    .reg_r1(Ra),
+    .reg_r2(Rb),
+    .reg_w(Rw),
+    .data_in(RF_in),
+    .en_write(rf_we), 
+    .clk(clk),
+    .dout_r1(dout_A),
+    .dout_r2(dout_B)
+);
 
 
 //Instanciação da ALU 
-
-
-assign ALU_A = (sel_ALU_A)? dout_A: imme_m;
-assign ALU_B = (sel_ALU_B)? dout_B: imme_m;
-assign sel_ALU = (func7 == 7'b0)? 2'b00: 2'b01; 
+assign ALU_B = (alu_src)? dout_B: imme_m;
+assign sel_ALU = (AluCmd != 4'b0) ? 2'b0 : ((func7 == 7'b0) ? 2'b0 : 2'b01);
 
 ALU ALU_dp #(64) (
-    .A(ALU_A),
+    .A(dout_A),
     .B(ALU_B),
     .result (ALU_out_int),
     .sel_alu (sel_ALU),
@@ -113,60 +134,53 @@ ALU ALU_dp #(64) (
 
 //Instanciação do PC
 
-registrador_pc PC_dp #(20)(
+registrador_pc PC_dp #(i_addr_bits)(
     .D (PC_sum),
     .Q(PC_out_int),
     .clk(clk),
-    .load(load_PC)    
+    .load(1'b1)    
     );
 
 //Instanciação do somador do PC
 
-assign PC_A = (sel_PC_A)? PC_out_int: dout_A[19:0];
-assign PC_B = (sel_PC_B)? 20'd4: imme_m[19:0];
+assign PC_B = (sel_PC_B)? i_addr_bits'd4: imme_m[i_addr_bits-1:0];
 
-sum_sub somador_PC #(20) (
-    .A(PC_A),
+sum_sub somador_PC #(i_addr_bits) (
+    .A(PC_out_int),
     .B(PC_B),
     .result(PC_sum),
     .substract(1'b0)
     );
 
-//Instanciação circuito PC_RF
+// //Instanciação circuito PC_RF
 
-assign PC_RF_sum = (sel_PC_RF)? 64'd4: imme_m;
+// assign PC_RF_sum = (sel_PC_RF)? 64'd4: imme_m;
 
-sum_sub somador_PC_RF #(64) (
-    .A(PC_RF_sum),
-    .B({44'b0, PC_out_int}),
-    .result(PC_RF),
-    .substract(1'b0)
-    );
+// sum_sub somador_PC_RF #(64) (
+//     .A(PC_RF_sum),
+//     .B({44'b0, PC_out_int}),
+//     .result(PC_RF),
+//     .substract(1'b0)
+//     );
 
 //Instanciação da IR
 registrador IR_dp #(32)(
-    .D(IM_out),
+    .D(i_mem_data),
     .Q(IR_out),
-    .load(load_IR),
+    .load(1'b1),
     .clk(clk)
     );
 
 
 //Instanciação do MUX da entrada do RF
 
-assign RF_in = (sel_RF_in == 2'b00) ? ALU_out_int :
-               (sel_RF_in == 2'b01) ? DM_out :
-               (sel_RF_in == 2'b11) ? PC_RF :
+assign RF_in = (rf_src == 2'b00) ? ALU_out_int :
+               (rf_src == 2'b01) ? d_mem_data :
                64'b0; // Valor padrão caso nenhuma condição seja satisfeita
 
 //Atribuição dos sinais de saída
 
-assign ALU_out = ALU_out_int;
-assign PC_out = PC_out_int;
-
-
-
-
-
+assign d_mem_addr = ALU_out_int;
+assign i_mem_addr = PC_out_int;
 
 endmodule

@@ -1,14 +1,11 @@
 module unidade_controle(
-    input clk,
-    input rst,
-    input [6:0] opcode,
-    //adicionar flags
-    output we_DM, we_IM,
-    output sel_ALU_A, sel_ALU_B, sel_PC_A, sel_PC_B, sel_PC_RF, 
-    output load_IR, load_PC, we_RF, 
-    output [2:0] sel_imme,
-    output [1:0] sel_RF_in
-);
+    input clk, rst_n,                       // clock borda subida, reset assíncrono ativo baixo
+    input [6:0] opcode,                     // OpCode direto do IR no FD
+    output d_mem_we, rf_we,                 // Habilita escrita na memória de dados e no banco de registradores
+    input  [3:0] alu_flags,                 // Flags da ULA
+    output [3:0] alu_cmd,                   // Operação da ULA
+    output alu_src, pc_src, rf_src          // Seletor dos MUXes
+);  
 
   // Definição dos estados
   parameter FETCH           = 4'b0000;
@@ -63,12 +60,12 @@ module unidade_controle(
                 proximo_estado = EX_SW;
             BRANCH:
                 proximo_estado = EX_BRANCH;
-            JAL:
-                proximo_estado = EX_JAL;
-            JALR:
-                proximo_estado = EX_JALR;
-            AUIPC:
-                proximo_estado = EX_AUIPC;
+            // JAL:
+            //     proximo_estado = EX_JAL;
+            // JALR:
+            //     proximo_estado = EX_JALR;
+            // AUIPC:
+            //     proximo_estado = EX_AUIPC;
             endcase
         EX_ADD, EX_ADDI, EX_LW, EX_SW, EX_BRANCH, EX_JAL, EX_JALR, EX_AUIPC:
             proximo_estado = WRITEBACK;
