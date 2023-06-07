@@ -80,12 +80,18 @@ module unidade_controle(
 
   
   // Definição das saídas
-  assign done = (estado_atual == DONE);
-  assign s1 = (estado_atual == SOMA1);
-  assign s2 = (estado_atual == SOMA2);
-  assign s3 = (estado_atual == SOMA3);
-  assign s4 = (estado_atual == SOMA4);
-  assign ver = (estado_atual == VERIFICACAO);
-  assign conv = (estado_atual == CONVERSAO);
+    assign we_RF = (estado_atual == EX_ADD | estado_atual == EX_ADDI | estado_atual == EX_LW);
+    assign sel_ALU_A = (estado_atual == EX_ADD | estado_atual == EX_ADDI | estado_atual == EX_LW | estado_atual == EX_BRANCH);
+    assign sel_ALU_B = (estado_atual == EX_ADD | estado_atual == EX_ADDI | estado_atual == EX_SW);
+    assign sel_PC_A = (estado_atual == EX_BRANCH | estado_atual == EX_JAL);
+    assign sel_PC_RF = (estado_atual == EX_JAL | estado_atual == EX_JALR);
+    assign sel_PC_B = (estado_atual == EX_BRANCH); //confirmar
+    assign sel_RF_in[0] = (estado_atual == EX_JAL | estado_atual == EX_JALR | estado_atual == EX_AUIPC | estado_atual == EX_LW);
+    assign sel_RF_in[1] = (estado_atual == EX_JAL | estado_atual == EX_JALR | estado_atual == EX_AUIPC);
+    assign sel_imme[0] = (estado_atual == EX_SW | estado_atual == EX_JAL);
+    assign sel_imme[1] = (estado_atual == EX_BRANCH | estado_atual == EX_JAL);
+    assign sel_imme[2] =  (estado_atual == EX_AUIPC);
 
+    //output we_DM, we_IM,
+    //output sel_PC_B
 endmodule
