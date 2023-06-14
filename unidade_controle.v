@@ -74,21 +74,19 @@ module unidade_controle(
     endcase
     estado_atual <= proximo_estado;
   end
-
+    
   
   // Definição das saídas
-    assign we_RF = (estado_atual == EX_ADD | estado_atual == EX_ADDI | estado_atual == EX_LW);
-    assign sel_ALU_A = (estado_atual == EX_ADD | estado_atual == EX_ADDI | estado_atual == EX_LW | estado_atual == EX_BRANCH);
-    assign sel_ALU_B = (estado_atual == EX_ADD | estado_atual == EX_ADDI | estado_atual == EX_SW);
-    assign sel_PC_A = (estado_atual == EX_BRANCH | estado_atual == EX_JAL);
-    assign sel_PC_RF = (estado_atual == EX_JAL | estado_atual == EX_JALR);
-    assign sel_PC_B = (estado_atual == EX_BRANCH); //confirmar
-    assign sel_RF_in[0] = (estado_atual == EX_JAL | estado_atual == EX_JALR | estado_atual == EX_AUIPC | estado_atual == EX_LW);
-    assign sel_RF_in[1] = (estado_atual == EX_JAL | estado_atual == EX_JALR | estado_atual == EX_AUIPC);
-    assign sel_imme[0] = (estado_atual == EX_SW | estado_atual == EX_JAL);
-    assign sel_imme[1] = (estado_atual == EX_BRANCH | estado_atual == EX_JAL);
-    assign sel_imme[2] =  (estado_atual == EX_AUIPC);
+    assign alu_src = (estado_atual == EX_LW | estado_atual == EX_SW);
+    assign rf_src = (estado_atual == EX_LW);
+    assign pc_src = ((estado_atual == EX_BRANCH) & (flag_beq));
+    assign d_mem_we = (estado_atual == EX_SW);
+    assign rf_we = (estado_atual == EX_ADD | estado_atual == EX_LW);
+    // alu_cmd
+    assign alu_cmd[3] = 1'b0;
+    assign alu_cmd[2] = 1'b0;
+    assign alu_cmd[1] = (estado_atual == EX_SW | estado_atual == EX_BRANCH);
+    assign alu_cmd[0] = (estado_atual == EX_LW | estado_atual == EX_BRANCH);
 
-    //output we_DM, we_IM,
-    //output sel_PC_B
+
 endmodule

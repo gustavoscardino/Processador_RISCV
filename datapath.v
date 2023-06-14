@@ -29,8 +29,9 @@ module datapath
 wire [63:0] d_in_pro;
 //wire [63:0] d_in_mem; 
 
-assign d_in_pro = (d_mem_we) ?  64'bz : d_mem_data;
-//assign d_in_mem = (d_mem_we) ?  d_mem_data : 64'bz;
+assign d_mem_data = (d_mem_we) ?  dout_B : 64'bz;
+assign d_in_pro = d_mem_data;
+//assign d_mem_data = (d_mem_we) ?   64'bz : saida da memoria;
 
 
 //Instanciação das entradas RF
@@ -67,9 +68,10 @@ wire [1:0] sel_ALU;
 
 //Instanciação dos fios do circuito PC
 //wire [19:0] PC_A;
-wire [19:0] PC_B;
-wire [19:0] PC_sum;
-wire [19:0] PC_out_int; 
+wire [i_addr_bits-1:0] PC_B;
+wire [i_addr_bits-1:0] PC_sum;
+wire [i_addr_bits-1:0] PC_out_int; 
+wire [63:0] PC_4;
 //wire [63:0] PC_RF;
 //wire [63:0] PC_RF_sum;
 
@@ -94,8 +96,8 @@ assign imme_U = {IR_out [31:12], 12'b0};
 
 //Extensão dos imediatos
 
-assign imme_I_64 = (imme_I[11])? {1111111111111111111111111111111111111111111111111111,imme_I}:{0000000000000000000000000000000000000000000000000000,imme_I};
-assign imme_S_64 = (imme_S[11])? {1111111111111111111111111111111111111111111111111111,imme_S}:{0000000000000000000000000000000000000000000000000000,imme_S};
+assign imme_I_64 = (imme_I[11])? {52'b1111111111111111111111111111111111111111111111111111,imme_I}:{52'b0000000000000000000000000000000000000000000000000000,imme_I};
+assign imme_S_64 = (imme_S[11])? {52'b1111111111111111111111111111111111111111111111111111,imme_S}:{52'b0000000000000000000000000000000000000000000000000000,imme_S};
 assign imme_B_64 = {51'b0, imme_B};
 assign imme_J_64 = {43'b0, imme_J};
 assign imme_U_64 = {32'b0, imme_J};
@@ -103,15 +105,15 @@ assign imme_U_64 = {32'b0, imme_J};
 
 //Multiplexadores do imediato
 
-assign imme_m = (alu_cmd == 3'b0001) ? imme_I_64 :
-               (alu_cmd == 3'b0010) ? imme_S_64 :
-               (alu_cmd == 3'b0011) ? imme_B_64 :
-               (alu_cmd == 3'b0100) ? imme_U_64 :
-               (alu_cmd == 3'b0101) ? imme_J_64 :
+assign imme_m = (alu_cmd == 4'b0001) ? imme_I_64 :
+               (alu_cmd == 4'b0010) ? imme_S_64 :
+               (alu_cmd == 4'b0011) ? imme_B_64 :
+               (alu_cmd == 4'b0100) ? imme_U_64 :
+               (alu_cmd == 4'b0101) ? imme_J_64 :
                64'b0;
 
 //Instanciacao do RF
-RF RF_dp #(64) (
+RF RF_dp (
     .reg_r1(Ra),
     .reg_r2(Rb),
     .reg_w(Rw),
@@ -131,7 +133,7 @@ assign sel_ALU = (alu_cmd != 4'b0) ? 2'b0 :
                  ((func3 == 3'b0) ? 2'b0  : 
                  ((func3 == 3'd7) ? 2'b10 : 2'b11)));
 
-ALUV2 ALU_dp #(64) (
+ALUV2 #(64) ALU_dp (
     .A(dout_A),
     .B(ALU_B),
     .result (ALU_out_int),
@@ -148,7 +150,7 @@ ALUV2 ALU_dp #(64) (
 
 //Instanciação do PC
 
-registrador_pc PC_dp #(i_addr_bits)(
+registrador_pc #(i_addr_bits) PC_dp(
     .D (PC_sum),
     .Q(PC_out_int),
     .clk(clk),
@@ -157,13 +159,15 @@ registrador_pc PC_dp #(i_addr_bits)(
 
 //Instanciação do somador do PC
 
-assign PC_B = (sel_PC_B)? i_addr_bits'd4: imme_m[i_addr_bits-1:0];
+assign PC_4 = 64'd4;
 
-sum_sub somador_PC #(i_addr_bits) (
+assign PC_B = (pc_src)? PC_4[i_addr_bits-1:0]: imme_m[i_addr_bits-1:0];
+
+sum_sub #(i_addr_bits) somador_PC (
     .A(PC_out_int),
     .B(PC_B),
     .result(PC_sum),
-    .substract(1'b0)
+    .subtract(1'b0)
     );
 
 // //Instanciação circuito PC_RF
@@ -178,7 +182,7 @@ sum_sub somador_PC #(i_addr_bits) (
 //     );
 
 //Instanciação da IR
-registrador IR_dp #(32)(
+registrador #(32) IR_dp(
     .D(i_mem_data),
     .Q(IR_out),
     .load(1'b1),
