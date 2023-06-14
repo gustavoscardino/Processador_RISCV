@@ -21,10 +21,18 @@ module datapath
     // 0000: R    0: zero
     // 0001: I    1: MSB 
     // 0010: S    2: overflow
-    // 0011: SB
+    // 0011: SB   3: equal --modificado
     // 0100: U
-    // 0101: UJ             
-    
+    // 0101: UJ
+
+//Instanciação do fio auxiliar pro Inout
+wire [63:0] d_in_pro;
+//wire [63:0] d_in_mem; 
+
+assign d_in_pro = (d_mem_we) ?  64'bz : d_mem_data;
+//assign d_in_mem = (d_mem_we) ?  d_mem_data : 64'bz;
+
+
 //Instanciação das entradas RF
 wire [4:0] Ra;
 wire [4:0] Rb;
@@ -95,11 +103,11 @@ assign imme_U_64 = {32'b0, imme_J};
 
 //Multiplexadores do imediato
 
-assign imme_m = (AluCmd == 3'b0001) ? imme_I_64 :
-               (AluCmd == 3'b0010) ? imme_S_64 :
-               (AluCmd == 3'b0011) ? imme_B_64 :
-               (AluCmd == 3'b0100) ? imme_U_64 :
-               (AluCmd == 3'b0101) ? imme_J_64 :
+assign imme_m = (alu_cmd == 3'b0001) ? imme_I_64 :
+               (alu_cmd == 3'b0010) ? imme_S_64 :
+               (alu_cmd == 3'b0011) ? imme_B_64 :
+               (alu_cmd == 3'b0100) ? imme_U_64 :
+               (alu_cmd == 3'b0101) ? imme_J_64 :
                64'b0;
 
 //Instanciacao do RF
@@ -117,19 +125,25 @@ RF RF_dp #(64) (
 
 //Instanciação da ALU 
 assign ALU_B = (alu_src)? dout_B: imme_m;
-assign sel_ALU = (AluCmd != 4'b0) ? 2'b0 : ((func7 == 7'b0) ? 2'b0 : 2'b01);
 
-ALU ALU_dp #(64) (
+assign sel_ALU = (alu_cmd != 4'b0) ? 2'b0 : 
+                 ((func7 != 7'b0) ? 2'b01 : 
+                 ((func3 == 3'b0) ? 2'b0  : 
+                 ((func3 == 3'd7) ? 2'b10 : 2'b11)));
+
+ALUV2 ALU_dp #(64) (
     .A(dout_A),
     .B(ALU_B),
     .result (ALU_out_int),
     .sel_alu (sel_ALU),
-    .flag_beq (),
+    .flag_beq (alu_flags[3]),
     .flag_bnq(),
     .flag_blt (),
     .flag_bge (),
     .flag_bltu (),
-    .flag_bgeu()    
+    .flag_zero(alu_flags[0]),
+    .flag_msb(alu_flags[1]),
+    .flag_over(alu_flags[2])
     );
 
 //Instanciação do PC
@@ -175,7 +189,7 @@ registrador IR_dp #(32)(
 //Instanciação do MUX da entrada do RF
 
 assign RF_in = (rf_src == 2'b00) ? ALU_out_int :
-               (rf_src == 2'b01) ? d_mem_data :
+               (rf_src == 2'b01) ? d_in_pro :
                64'b0; // Valor padrão caso nenhuma condição seja satisfeita
 
 //Atribuição dos sinais de saída
