@@ -25,6 +25,10 @@ module datapath
     // 0100: U
     // 0101: UJ
 
+//Instanciação das saídas RF
+wire [63:0] dout_B;
+wire [63:0] dout_A;
+
 //Instanciação do fio auxiliar pro Inout
 wire [63:0] d_in_pro;
 //wire [63:0] d_in_mem; 
@@ -43,10 +47,6 @@ wire [63:0] RF_in;
 //Instanciação dos functions
 wire [2:0] func3;
 wire [6:0] func7;
-
-//Instanciação das saídas RF
-wire [63:0] dout_B;
-wire [63:0] dout_A;
 
 //Instanciação dos Imediatos
 wire [11:0] imme_I;
@@ -98,7 +98,7 @@ assign imme_U = {IR_out [31:12], 12'b0};
 
 assign imme_I_64 = (imme_I[11])? {52'b1111111111111111111111111111111111111111111111111111,imme_I}:{52'b0000000000000000000000000000000000000000000000000000,imme_I};
 assign imme_S_64 = (imme_S[11])? {52'b1111111111111111111111111111111111111111111111111111,imme_S}:{52'b0000000000000000000000000000000000000000000000000000,imme_S};
-assign imme_B_64 = (imme_B[12])? {111111111111111111111111111111111111111111111111111,imme_B}:{000000000000000000000000000000000000000000000000000,imme_B};
+assign imme_B_64 = (imme_B[12])? {51'b111111111111111111111111111111111111111111111111111,imme_B}:{51'b000000000000000000000000000000000000000000000000000,imme_B};
 assign imme_J_64 = {43'b0, imme_J};
 assign imme_U_64 = {32'b0, imme_J};
 

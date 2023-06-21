@@ -43,7 +43,7 @@ module unidade_controle(
   always @(posedge clk) begin
     case (estado_atual)
         FETCH:
-            if (rst)
+            if (rst_n)
                 proximo_estado =  FETCH;
             else
                 proximo_estado = DECODE;
@@ -79,7 +79,7 @@ module unidade_controle(
   // Definição das saídas
     assign alu_src = (estado_atual == EX_LW | estado_atual == EX_SW);
     assign rf_src = (estado_atual == EX_LW);
-    assign pc_src = ((estado_atual == EX_BRANCH) & (flag_beq));
+    assign pc_src = ((estado_atual == EX_BRANCH) & (alu_flags[3]));
     assign d_mem_we = (estado_atual == EX_SW);
     assign rf_we = (estado_atual == EX_ADD | estado_atual == EX_LW);
     // alu_cmd
