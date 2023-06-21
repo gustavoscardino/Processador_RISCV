@@ -35,7 +35,7 @@ wire [63:0] d_in_pro;
 
 assign d_mem_data = (d_mem_we) ?  dout_B : 64'bz;
 assign d_in_pro = d_mem_data;
-//assign d_mem_data = (d_mem_we) ?   64'bz : saida da memoria;
+
 
 
 //Instanciação das entradas RF

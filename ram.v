@@ -9,25 +9,30 @@ Arquivo: Código de uma memória RAM*/
 module ram(
     input clk,
     input [4:0] endereco,
-    input we,
-    input [63:0] dataIn,
-    output [63:0] dataOut
+    input d_mem_we,
+    inout [63:0] d_mem_data
     );
+
+
+
 
 
 //criação da memória usando arrays
     reg [63:0] mem[31:0];
+    wire [63:0] saida_mem;
 
 
 //definindo operação de leitura
-    assign dataOut = mem[endereco];
-
+    assign saida_mem = mem[endereco];
+    
+//atribuição do inout
+assign d_mem_data = (d_mem_we)? 64'bz: saida_mem;
 
 //definindo operação de escrita
 
     always @(posedge clk) begin
-        if (we) begin
-            mem[endereco] <= dataIn;
+        if (d_mem_we) begin
+            mem[endereco] <= d_mem_data;
         end
     end
 
